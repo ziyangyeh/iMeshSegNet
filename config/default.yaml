@@ -1,0 +1,8 @@
+train:
+  lr_rate: 0.001
+
+model:
+  num_classes: 15
+  num_channels: 15
+  with_dropout: True
+  dropout_p: 0.5
