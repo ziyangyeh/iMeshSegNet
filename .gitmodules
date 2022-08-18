@@ -1,6 +1,6 @@
-[submodule "MeshSegNet"]
-	path = MeshSegNet
-	url = git@github.com:Tai-Hsien/MeshSegNet.git
-[submodule "easy_mesh_vtk"]
-	path = easy_mesh_vtk
+[submodule "utils/easy_mesh_vtk"]
+	path = utils/easy_mesh_vtk
 	url = git@github.com:GitHubGenLi/easy_mesh_vtk.git
+[submodule "utils/MeshSegNet"]
+	path = utils/MeshSegNet
+	url = git@github.com:ziyangyeh/MeshSegNet.git

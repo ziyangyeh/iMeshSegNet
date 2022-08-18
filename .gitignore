@@ -1,12 +1,22 @@
-MeshSegNet
-easy_mesh_vtk
-
+*/__pycache__
+**/__pycache__
 __pycache__/
+
+*.pyc
+*.so
+*.egg
+*.egg-info
+dist
+build
+
+.idea
+checkpoints
+pretrained
+wandb
 
 h5
 data
 augmentation_vtk_data
 14颗
 
-*.pyc
 test.py

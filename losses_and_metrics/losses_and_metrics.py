@@ -1,5 +1,5 @@
-from MeshSegNet.losses_and_metrics_for_mesh import Generalized_Dice_Loss as gdl
-from MeshSegNet.losses_and_metrics_for_mesh import weighting_DSC, weighting_SEN, weighting_PPV
+from utils import Generalized_Dice_Loss as gdl
+from utils import weighting_DSC, weighting_SEN, weighting_PPV
 
 import torch
 import torch.nn as nn

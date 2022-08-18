@@ -9,14 +9,14 @@ import vedo
 import torch
 import numpy as np
 import pandas as pd
+from scipy.spatial import distance_matrix
 from tqdm import tqdm
 from tqdm.contrib import tzip
 from joblib import Parallel, delayed
 from sklearn.model_selection import KFold, train_test_split
 from multiprocessing import cpu_count
 
-from models import get_graph_feature
-from easy_mesh_vtk.easy_mesh_vtk import GetVTKTransformationMatrix, Easy_Mesh
+from utils import GetVTKTransformationMatrix, Easy_Mesh, get_graph_feature
 
 def rearrange(nparry: np.ndarray) -> np.ndarray:
     nparry[nparry == 17] = 1
@@ -116,6 +116,8 @@ def gen_metadata(idx: int, mesh_path: str, patch_size: int, stage: str, hdf5: h5
     # initialize batch of input and label
     X_train = np.zeros([patch_size, X.shape[1]], dtype='float32')
     Y_train = np.zeros([patch_size, Y.shape[1]], dtype='int32')
+    S1 = np.zeros([patch_size, patch_size], dtype='float32')
+    S2 = np.zeros([patch_size, patch_size], dtype='float32')
 
     # calculate number of valid cells (tooth instead of gingiva)
     positive_idx = np.argwhere(labels>0)[:, 0] #tooth idx
@@ -137,6 +139,17 @@ def gen_metadata(idx: int, mesh_path: str, patch_size: int, stage: str, hdf5: h5
     X_train[:] = X[selected_idx, :]
     Y_train[:] = Y[selected_idx, :]
 
+    # TX = torch.as_tensor(X_train[:, 9:12])
+    # TD = torch.cdist(TX, TX)
+    # D = TD.numpy()
+    D = distance_matrix(X_train[:, 9:12], X_train[:, 9:12])
+
+    S1[D<0.1] = 1.0
+    S1 = S1 / np.dot(np.sum(S1, axis=1, keepdims=True), np.ones((1, patch_size)))
+
+    S2[D<0.2] = 1.0
+    S2 = S2 / np.dot(np.sum(S2, axis=1, keepdims=True), np.ones((1, patch_size)))
+
     X_train = X_train.transpose(1, 0)
     Y_train = Y_train.transpose(1, 0)
     
@@ -147,6 +160,8 @@ def gen_metadata(idx: int, mesh_path: str, patch_size: int, stage: str, hdf5: h5
     hdf5[stage]["label"][idx] = Y_train
     hdf5[stage]["KG_6"][idx] = KG_6
     hdf5[stage]["KG_12"][idx] = KG_12
+    hdf5[stage]["A_S"][idx] = S1
+    hdf5[stage]["A_L"][idx] = S2
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="H5 Dataset Script")
@@ -155,6 +170,7 @@ if __name__ == "__main__":
     parser.add_argument("-off", "--offset", type=int, metavar="", help="Offset Value", default=0)
     parser.add_argument("-aug", "--augment", type=int, metavar="", help="Augment Value", default=20)
     parser.add_argument("-patch", "--patch_size", type=int, metavar="", help="Patch Size", default=7000)
+    parser.add_argument("-cfg", "--cfg_file", type=str, metavar="", help="CFG File Path", required=True)
 
     args = parser.parse_args()
 
@@ -213,15 +229,20 @@ if __name__ == "__main__":
     else:
         os.mkdir(h5_dir)
 
+    from omegaconf import OmegaConf
+    cfg = OmegaConf.load(args.cfg_file)
+
     for jaw_type, abbr in zip(["upper", "lower"], ["u", "l"]):
         f = h5py.File(os.path.join(h5_dir, f'{jaw_type}.hdf5'), 'a')
         for item in ["train", "val", "test"]:
             length = len(eval(f"{abbr}_{item}_list"))
             data_group = f.create_group(item)
             data_group.create_dataset("label", data=np.zeros((length, 1, args.patch_size), dtype=np.int32), dtype="int32")
-            data_group.create_dataset("input", data=np.zeros((length, 15, args.patch_size), dtype=np.float32), dtype="float32")
-            data_group.create_dataset("KG_6", data=np.zeros((length, 2*15, args.patch_size, 6), dtype=np.float32), dtype="float32")
-            data_group.create_dataset("KG_12", data=np.zeros((length, 2*15, args.patch_size, 12), dtype=np.float32), dtype="float32")
+            data_group.create_dataset("input", data=np.zeros((length, cfg.model.num_channels, args.patch_size), dtype=np.float32), dtype="float32")
+            data_group.create_dataset("KG_6", data=np.zeros((length, 2*cfg.model.num_channels, args.patch_size, 6), dtype=np.float32), dtype="float32")
+            data_group.create_dataset("KG_12", data=np.zeros((length, 2*cfg.model.num_channels, args.patch_size, 12), dtype=np.float32), dtype="float32")
+            data_group.create_dataset("A_S", data=np.zeros((length, args.patch_size, args.patch_size), dtype=np.float32), dtype="float32")
+            data_group.create_dataset("A_L", data=np.zeros((length, args.patch_size, args.patch_size), dtype=np.float32), dtype="float32")
             for idx,i in enumerate(tqdm(eval(f"{abbr}_{item}_list"), desc=f"{jaw_type}_{item}")):
                 gen_metadata(idx,i,args.patch_size,item,f)
         f.close()
