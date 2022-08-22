@@ -1,32 +1,32 @@
 seed: 42
 train:
-  epochs: 300
-  learning_rate: 0.001
+  epochs: 200
+  learning_rate: 0.0003
   optimizer: "adam"
   scheduler: "StepLR"
-  step_size: 20
-  gamma: 0.5
-  weight_decay: 0.0001
+  step_size: 50
+  gamma: 0.1
+  weight_decay: 0
   checkpoint_dir: "checkpoints"
   benchmark: True
   deterministic: True
   accelerator: "gpu"
-  devices: -1
+  devices: 3
   strategy: "DDP"
   precision: 16
   accumulate_grad_batches: 1
   auto_lr_find: False
   auto_scale_batch_size: False
   fast_dev_run: False
-  pretrain_file: "pretrained/MeshSegNet_Max_15_classes_72samples_lr1e-2_best.zip"
+  pretrain_file: None
 dataset:
   hdf5_path: "h5/upper.hdf5"
 dataloader:
-  batch_size: 4
-  num_workers: 4
+  batch_size: 16
+  num_workers: 16
 model:
   name: "MeshSegNet"
-  num_classes: 15
+  num_classes: 17
   num_channels: 15
   with_dropout: True
   dropout_p: 0.5

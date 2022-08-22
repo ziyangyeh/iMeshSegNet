@@ -3,7 +3,7 @@ from typing import Dict, List, Optional, Tuple, Callable
 import torch
 import h5py
 import numpy as np
-from mpi4py import MPI
+# from mpi4py import MPI
 from torch.utils.data import Dataset
 
 class H5_Mesh_Dataset(Dataset):

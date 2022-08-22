@@ -25,10 +25,10 @@ def train(cfg_path: str):
     if cfg.train.pretrain_file is not None and os.path.exists(cfg.train.pretrain_file):
         module.load_model(cfg.train.pretrain_file)
 
-    model_checkpoint = ModelCheckpoint(cfg.train.checkpoint_dir,
+    model_checkpoint = ModelCheckpoint(dirpath=cfg.train.checkpoint_dir,
                                     monitor="val_DSC",
                                     mode="max",
-                                    filename=f"{module.model.__class__.__name__}_{cfg.model.num_classes}_Classes",
+                                    filename=f"{module.model.__class__.__name__}_{cfg.model.num_classes}_Classes_{cfg.train.precision}_f",
                                     verbose="True"
                                     )
 
@@ -41,7 +41,7 @@ def train(cfg_path: str):
                         max_epochs=cfg.train.epochs,
                         precision=cfg.train.precision,
                         log_every_n_steps=cfg.logger.log_every_n_steps,
-                        logger=WandbLogger(project=cfg.logger.project) if cfg.logger.use == True else False,
+                        logger=WandbLogger(project=cfg.logger.project, name=f"{cfg.model.name}-{cfg.train.precision}f") if cfg.logger.use == True else False,
                         accumulate_grad_batches=cfg.train.accumulate_grad_batches,
                         auto_lr_find=cfg.train.auto_lr_find,
                         auto_scale_batch_size=cfg.train.auto_scale_batch_size,
@@ -50,7 +50,7 @@ def train(cfg_path: str):
 
     trainer.tune(module, datamodule=datamodule)
 
-    trainer.fit(module, datamodule=datamodule, ckpt_path=cfg.train.checkpoint_dir if os.path.exists(cfg.train.checkpoint_dir) else None)
+    trainer.fit(module, datamodule=datamodule, ckpt_path=os.path.join(cfg.train.checkpoint_dir, f"{module.model.__class__.__name__}_{cfg.model.num_classes}_Classes_{cfg.train.precision}_f.ckpt") if os.path.exists(os.path.join(cfg.train.checkpoint_dir, f"{module.model.__class__.__name__}_{cfg.model.num_classes}_Classes_{cfg.train.precision}_f.ckpt")) else None)
 
 
 if __name__ == '__main__':

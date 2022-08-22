@@ -9,7 +9,7 @@ def knn(x, k):
     idx = pairwise_distance.topk(k=k, dim=-1)[1]   # (batch_size, num_points, k)
     return idx
 
-def get_graph_feature(x, k=20, idx=None, dim9=False, device=torch.device('cpu')):
+def get_graph_feature(x, k=20, idx=None, dim9=False, device='cpu'):
     batch_size = x.size(0)
     num_points = x.size(2)
     x = x.view(batch_size, -1, num_points)

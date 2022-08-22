@@ -61,7 +61,7 @@ class iMeshSegNet(nn.Module):
         if self.with_dropout:
             self.dropout = nn.Dropout(p=self.dropout_p)
 
-    def forward(self, x, kg_6, kg_12):
+    def forward(self, x, kg_12, kg_6):
         batchsize = x.size()[0]
         n_pts = x.size()[2]
         # MLP-1

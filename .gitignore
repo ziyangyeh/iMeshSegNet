@@ -11,12 +11,16 @@ build
 
 .idea
 checkpoints
+checkpoints*
 pretrained
 wandb
+lightning_logs
 
 h5
+h5_data
 data
 augmentation_vtk_data
 14颗
 
-test.py
+*.vtp
+debug.py
