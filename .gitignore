@@ -23,4 +23,6 @@ augmentation_vtk_data
 14颗
 
 *.vtp
+*.ckpt
+*.onnx
 debug.py

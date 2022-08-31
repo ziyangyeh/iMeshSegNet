@@ -11,7 +11,7 @@ train:
   benchmark: True
   deterministic: True
   accelerator: "gpu"
-  devices: 3
+  devices: [1]
   strategy: "DDP"
   precision: 16
   accumulate_grad_batches: 1
