@@ -33,9 +33,10 @@ class LitModule(pl.LightningModule):
                                     num_channels=self.cfg_model.num_channels, 
                                     with_dropout=self.cfg_model.with_dropout, 
                                     dropout_p=self.cfg_model.dropout_p)
-            self.loss_fn = Generalized_Dice_Loss()
         else:
             raise AttributeError
+        
+        self.loss_fn = Generalized_Dice_Loss()
         
         self.save_hyperparameters()
         
@@ -92,9 +93,14 @@ class LitModule(pl.LightningModule):
         one_hot_labels = nn.functional.one_hot(batch['label'][:, 0, :], num_classes=self.cfg_model.num_classes)
         
         if self.cfg.model.name == "iMeshSegNet":
-            lovasz_loss = self.lovasz_fn(outputs.view(-1, self.cfg_model.num_classes), batch["label"].view(-1))
-            ce_loss = self.ce_fn(outputs.view(-1, self.cfg_model.num_classes), batch["label"].view(-1))
-            loss = 0.5 * lovasz_loss + 0.5 * ce_loss
+            gum_weight = 0.9
+            train_weights = class_weights.clone()
+            train_weights /= (1 - gum_weight) / self.cfg_model.num_classes
+            train_weights[0] = gum_weight
+            dice_loss = self.loss_fn(outputs, one_hot_labels, train_weights)
+            lovasz_loss = self.lovasz_fn(outputs.view(-1, self.cfg_model.num_classes).unsqueeze(-1).unsqueeze(-1), batch["label"].view(-1))
+            ce_loss = self.ce_fn(outputs.view(-1, self.cfg_model.num_classes), batch["label"].view(-1))   
+            loss = dice_loss * 0.45 + lovasz_loss * 0.45 + ce_loss * 0.1
         elif self.cfg.model.name == "MeshSegNet":
             loss = self.loss_fn(outputs, one_hot_labels, class_weights)
         else:

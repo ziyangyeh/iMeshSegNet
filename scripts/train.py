@@ -29,10 +29,16 @@ def train(cfg_path: str):
     if cfg.train.pretrain_file is not None and os.path.exists(cfg.train.pretrain_file):
         module.load_model(cfg.train.pretrain_file)
 
-    model_checkpoint = ModelCheckpoint(dirpath=cfg.train.checkpoint_dir,
+    dsc_model_checkpoint = ModelCheckpoint(dirpath=cfg.train.checkpoint_dir,
                                     monitor="val_DSC",
                                     mode="max",
-                                    filename=f"{module.model.__class__.__name__}_{cfg.model.num_classes}_Classes_{cfg.train.precision}_f",
+                                    filename=f"{module.model.__class__.__name__}_{cfg.model.num_classes}_Classes_{cfg.train.precision}_f_best_DSC",
+                                    verbose="True"
+                                    )
+    loss_model_checkpoint = ModelCheckpoint(dirpath=cfg.train.checkpoint_dir,
+                                    monitor="val_loss",
+                                    mode="min",
+                                    filename=f"{module.model.__class__.__name__}_{cfg.model.num_classes}_Classes_{cfg.train.precision}_f_best_loss",
                                     verbose="True"
                                     )
 
@@ -42,7 +48,7 @@ def train(cfg_path: str):
     # elif cfg.train.strategy == "DDP" and cfg.model.name == "iMeshSegNet":
     #     strategy = DDPStrategy(find_unused_parameters=True)
 
-    trainer = pl.Trainer(callbacks=[model_checkpoint],
+    trainer = pl.Trainer(callbacks=[dsc_model_checkpoint, loss_model_checkpoint],
                         benchmark=cfg.train.benchmark,
                         deterministic=cfg.train.deterministic if cfg.model.name == "MeshSegNet" else False,
                         accelerator=cfg.train.accelerator, 

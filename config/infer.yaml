@@ -1,7 +1,7 @@
 seed: 42
 infer:
   accelerator: "gpu"
-  devices: [1]
+  devices: [0]
 model:
   name: "iMeshSegNet"
   num_classes: 15 #TeethLabels + 1(gum)
