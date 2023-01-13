@@ -1,10 +1,10 @@
-from typing import Dict, List, Optional, Tuple, Callable
+from typing import Callable, Dict, List, Optional, Tuple
 
-import torch
 import h5py
 import numpy as np
-# from mpi4py import MPI
+import torch
 from torch.utils.data import Dataset
+
 
 class H5_Mesh_Dataset(Dataset):
     def __init__(self,
@@ -15,7 +15,6 @@ class H5_Mesh_Dataset(Dataset):
         self.cfg = cfg
         self.data_type = data_type
         self.file_path = file_path
-        # self.hdf5 = h5py.File(self.file_path, 'r', driver='mpio', comm=MPI.COMM_WORLD)
         self.hdf5 = h5py.File(self.file_path, 'r')
         self.length = len(self.hdf5[self.data_type]["label"])
         self.dataset = self.hdf5[self.data_type]
@@ -40,5 +39,19 @@ class H5_Mesh_Dataset(Dataset):
             raise NotImplementedError
         return data
 
-    # def __del__(self):
-    #     self.hdf5.close()
+if __name__=="__main__":
+    import torch.nn as nn
+    from omegaconf import OmegaConf
+    
+    cfg = OmegaConf.load("config/default.yaml")
+    ds = H5_Mesh_Dataset(cfg,"val",cfg.dataset.hdf5_path)
+    one_batch_label = ds[0]["label"].unsqueeze(0)
+    print(one_batch_label.shape)
+    print(one_batch_label.min())
+    print(one_batch_label.max())
+    np_one_batch_label=one_batch_label.numpy()
+    zero_ind=torch.from_numpy(np.where(np_one_batch_label==0)[-1])
+    print(zero_ind)
+    one_hot_labels = nn.functional.one_hot(one_batch_label[:, 0, :], num_classes=cfg.model.num_classes)
+    print(one_hot_labels[0][zero_ind])
+    

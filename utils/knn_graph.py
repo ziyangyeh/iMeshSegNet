@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 def knn(x, k):
     inner = -2*torch.matmul(x.transpose(2, 1), x)
     xx = torch.sum(x**2, dim=1, keepdim=True)

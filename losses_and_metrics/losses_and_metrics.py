@@ -1,8 +1,9 @@
-from utils import Generalized_Dice_Loss as gdl
-from utils import weighting_DSC, weighting_SEN, weighting_PPV
-
 import torch
 import torch.nn as nn
+
+from utils import Generalized_Dice_Loss as gdl
+from utils import weighting_DSC, weighting_PPV, weighting_SEN
+
 
 class Generalized_Dice_Loss(nn.Module):
     def __init__(self,

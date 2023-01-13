@@ -1,34 +1,37 @@
-import sys, os
+import os
+import sys
+
 sys.path.append(os.getcwd())
 
-import time
-import ast
-import vedo
 import argparse
-import numpy as np
-import torch
-import pytorch_lightning as pl
-from scipy.spatial import distance_matrix
-from omegaconf import OmegaConf
+import ast
+import time
 
+import numpy as np
+import pytorch_lightning as pl
+import torch
+import vedo
+from omegaconf import OmegaConf
 from pygco import cut_from_graph
+from scipy.spatial import distance_matrix
 
 from models import LitModule
 from utils import get_graph_feature
 
+
 def centring(mesh: vedo.Mesh):
-    mesh.points(pts=mesh.points()-mesh.centerOfMass())
+    mesh.points(pts=mesh.points()-mesh.center_of_mass())
     return mesh
 
 def get_metadata(cfg: OmegaConf, mesh: vedo.Mesh, device='cuda'):
     mesh = centring(mesh)
-    N = mesh.NCells()
+    N = mesh.ncells
     points = vedo.vtk2numpy(mesh.polydata().GetPoints().GetData())
     ids = vedo.vtk2numpy(mesh.polydata().GetPolys().GetData()).reshape((N, -1))[:,1:]
     cells = points[ids].reshape(N, 9).astype(dtype='float32')
     normals = vedo.vedo2trimesh(mesh).face_normals
     normals.setflags(write=1)
-    barycenters = mesh.cellCenters()
+    barycenters = mesh.cell_centers()
     
     #normalized data
     maxs = points.max(axis=0)
@@ -80,21 +83,25 @@ def get_metadata(cfg: OmegaConf, mesh: vedo.Mesh, device='cuda'):
 
 def infer(cfg_path: str, ckpt_path: str, mesh_file: str, refine: bool, device='cuda') -> vedo.Mesh:
     cfg = OmegaConf.load(cfg_path)
+    if len(cfg.infer.devices) == 1 and cfg.infer.accelerator == "gpu":
+        device = f"cuda:{cfg.infer.devices[0]}"
+    elif len(cfg.infer.devices) > 1 and cfg.infer.accelerator == "gpu":
+        device = "cuda:0"
     module = LitModule(cfg).load_from_checkpoint(ckpt_path)
     model = module.model.to(device)
     model.eval()
     
     mesh = vedo.Mesh(mesh_file)
     start_time = time.time()
-    N = mesh.NCells()
+    N = mesh.ncells
     points = vedo.vtk2numpy(mesh.polydata().GetPoints().GetData())
     ids = vedo.vtk2numpy(mesh.polydata().GetPolys().GetData()).reshape((N, -1))[:,1:]
     cells = points[ids].reshape(N, 9).astype(dtype='float32')
     normals = vedo.vedo2trimesh(mesh).face_normals
-    barycenters = mesh.cellCenters()
+    barycenters = mesh.cell_centers()
 
     mesh_d = mesh.clone()
-    predicted_labels_d = np.zeros([mesh_d.NCells(), 1], dtype=np.int32)
+    predicted_labels_d = np.zeros([mesh_d.ncells, 1], dtype=np.int32)
     input_data = get_metadata(cfg, mesh, device)
 
     infer_start_time = time.time()

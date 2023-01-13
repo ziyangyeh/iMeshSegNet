@@ -1,0 +1,11 @@
+seed: 42
+infer:
+  accelerator: "gpu"
+  devices: [1]
+model:
+  name: "iMeshSegNet"
+  num_classes: 15 #TeethLabels + 1(gum)
+  num_channels: 15
+  with_dropout: True
+  dropout_p: 0.5
+train: None

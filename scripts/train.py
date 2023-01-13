@@ -1,15 +1,19 @@
-import sys, os
+import os
+import sys
+
 sys.path.append(os.getcwd())
 
 import argparse
+
 import pytorch_lightning as pl
 from omegaconf import OmegaConf
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.strategies import *
 
-from models import LitModule
 from dataset import LitDataModule
+from models import LitModule
+
 
 def train(cfg_path: str):
     cfg = OmegaConf.load(cfg_path)
@@ -32,9 +36,15 @@ def train(cfg_path: str):
                                     verbose="True"
                                     )
 
+    # strategy = cfg.train.strategy
+    # if cfg.train.strategy == "DDP" and cfg.model.name == "MeshSegNet":
+    #     strategy = DDPStrategy(find_unused_parameters=False)
+    # elif cfg.train.strategy == "DDP" and cfg.model.name == "iMeshSegNet":
+    #     strategy = DDPStrategy(find_unused_parameters=True)
+
     trainer = pl.Trainer(callbacks=[model_checkpoint],
                         benchmark=cfg.train.benchmark,
-                        deterministic=cfg.train.deterministic,
+                        deterministic=cfg.train.deterministic if cfg.model.name == "MeshSegNet" else False,
                         accelerator=cfg.train.accelerator, 
                         devices=cfg.train.devices,
                         strategy=DDPStrategy(find_unused_parameters=False) if cfg.train.strategy == "DDP" else cfg.train.strategy,
@@ -45,8 +55,7 @@ def train(cfg_path: str):
                         accumulate_grad_batches=cfg.train.accumulate_grad_batches,
                         auto_lr_find=cfg.train.auto_lr_find,
                         auto_scale_batch_size=cfg.train.auto_scale_batch_size,
-                        fast_dev_run=cfg.train.fast_dev_run,
-                        )
+                        fast_dev_run=cfg.train.fast_dev_run)
 
     trainer.tune(module, datamodule=datamodule)
 

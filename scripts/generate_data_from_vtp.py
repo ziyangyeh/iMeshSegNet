@@ -1,18 +1,23 @@
-import sys, os
+import os
+import sys
+
 sys.path.append(os.getcwd())
 
-import glob
-import h5py
 import argparse
+import glob
+from multiprocessing import cpu_count
+
+import h5py
 import numpy as np
+from joblib import Parallel, delayed
+from sklearn.model_selection import KFold, train_test_split
 from tqdm import tqdm
 from tqdm.contrib import tzip
-from joblib import Parallel, delayed
-from multiprocessing import cpu_count
-from sklearn.model_selection import KFold, train_test_split
 
-from .generate_data import rearrange, centring, augment, gen_metadata
 from utils import Easy_Mesh
+
+from .generate_data import augment, centring, gen_metadata, rearrange
+
 
 def flip(mesh_path: str, out_dir: str):
     flipped_result = Easy_Mesh(os.path.join(out_dir, os.path.splitext(os.path.basename(mesh_path))[0]+".vtp"))

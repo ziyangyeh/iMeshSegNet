@@ -1,13 +1,15 @@
-from typing import Dict, List, Optional, Tuple, Callable
 import os
+from typing import Callable, Dict, List, Optional, Tuple
+
 import pandas as pd
+import pytorch_lightning as pl
 import torch
 import torch.nn as nn
-import pytorch_lightning as pl
-from torch.utils.data import Dataset, DataLoader, random_split
 from omegaconf import OmegaConf
+from torch.utils.data import DataLoader, Dataset, random_split
 
 from .h5_dataset import H5_Mesh_Dataset
+
 
 class LitDataModule(pl.LightningDataModule):
     def __init__(self, cfg: OmegaConf):

@@ -1,1 +1,1 @@
-from utils import STN3d, STNkd, MeshSegNet
+from utils import MeshSegNet, STN3d, STNkd

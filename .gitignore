@@ -1,28 +1,14 @@
-*/__pycache__
-**/__pycache__
-__pycache__/
+__pycache__
 
-*.pyc
-*.so
-*.egg
-*.egg-info
-dist
-build
-
-.idea
 checkpoints
-checkpoints*
 pretrained
 wandb
 lightning_logs
 
 h5
-h5_data
-data
+meta-data
+vtk-data
 augmentation_vtk_data
-14颗
 
 *.vtp
-*.ckpt
-*.onnx
 debug.py

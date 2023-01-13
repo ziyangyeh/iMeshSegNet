@@ -1,22 +1,26 @@
-import sys, os
+import os
+import sys
+
 sys.path.append(os.getcwd())
 
-import glob
-import h5py
 import argparse
-import trimesh
-import vedo
-import torch
-import numpy as np
-import pandas as pd
-from scipy.spatial import distance_matrix
-from tqdm import tqdm
-from tqdm.contrib import tzip
-from joblib import Parallel, delayed
-from sklearn.model_selection import KFold, train_test_split
+import glob
 from multiprocessing import cpu_count
 
-from utils import GetVTKTransformationMatrix, Easy_Mesh, get_graph_feature
+import h5py
+import numpy as np
+import pandas as pd
+import torch
+import trimesh
+import vedo
+from joblib import Parallel, delayed
+from scipy.spatial import distance_matrix
+from sklearn.model_selection import KFold, train_test_split
+from tqdm import tqdm
+from tqdm.contrib import tzip
+
+from utils import Easy_Mesh, GetVTKTransformationMatrix, get_graph_feature
+
 
 def rearrange(nparry: np.ndarray) -> np.ndarray:
     nparry[nparry == 17] = 1
@@ -53,7 +57,7 @@ def centring(mesh):
     if isinstance(mesh, trimesh.Trimesh):
         mesh.vertices -= mesh.centroid
     elif isinstance(mesh, vedo.Mesh):
-        mesh.points(pts=mesh.points()-mesh.centerOfMass())
+        mesh.points(pts=mesh.points()-mesh.center_of_mass())
     else:
         raise NotImplementedError
     return mesh
@@ -80,20 +84,20 @@ def augment(mesh_path: str, out_dir: str, aug_num: int):
         vtk_matrix = GetVTKTransformationMatrix(rotate_X=[-180, 180], rotate_Y=[-180, 180], rotate_Z=[-180, 180],
                                                 translate_X=[-10, 10], translate_Y=[-10, 10], translate_Z=[-10, 10],
                                                 scale_X=[0.8, 1.2], scale_Y=[0.8, 1.2], scale_Z=[0.8, 1.2]) #use default random setting
-        mesh.applyTransform(vtk_matrix)
+        mesh.apply_transform(vtk_matrix)
         mesh = centring(mesh)
         mesh.celldata['Normal'] = vedo.vedo2trimesh(mesh).face_normals
         vedo.io.write(mesh, os.path.join(out_dir, "A%02d_" %i+os.path.basename(mesh_path)))
 
 def gen_metadata(idx: int, mesh_path: str, patch_size: int, stage: str, hdf5: h5py.File):
     mesh = vedo.Mesh(mesh_path)
-    N = mesh.NCells()
+    N = mesh.ncells
     points = vedo.vtk2numpy(mesh.polydata().GetPoints().GetData())
     ids = vedo.vtk2numpy(mesh.polydata().GetPolys().GetData()).reshape((N, -1))[:,1:]
     cells = points[ids].reshape(N, 9).astype(dtype='float32')
     labels = mesh.celldata["Label"].astype('int32').reshape(-1, 1)
     normals = mesh.celldata["Normal"]
-    barycenters = mesh.cellCenters()
+    barycenters = mesh.cell_centers()
     
     #normalized data
     maxs = points.max(axis=0)

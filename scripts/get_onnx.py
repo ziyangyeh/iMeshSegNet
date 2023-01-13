@@ -1,15 +1,18 @@
-import sys, os
+import os
+import sys
+
 sys.path.append(os.getcwd())
 
-import time
 import argparse
-import vedo
+import time
+
+import numpy as np
 import torch
 import torch.onnx
-import numpy as np
+import vedo
 from omegaconf import OmegaConf
-from models import LitModule
 
+from models import LitModule
 from scripts.infer import get_metadata
 
 torch.set_default_tensor_type('torch.FloatTensor')
@@ -24,15 +27,15 @@ def get_onnx(cfg_path: str, ckpt_path: str, mesh_file: str, filepath: str):
 
     mesh = vedo.Mesh(mesh_file)
     start_time = time.time()
-    N = mesh.NCells()
+    N = mesh.ncells
     points = vedo.vtk2numpy(mesh.polydata().GetPoints().GetData())
     ids = vedo.vtk2numpy(mesh.polydata().GetPolys().GetData()).reshape((N, -1))[:,1:]
     cells = points[ids].reshape(N, 9).astype(dtype='float32')
     normals = vedo.vedo2trimesh(mesh).face_normals
-    barycenters = mesh.cellCenters()
+    barycenters = mesh.cell_centers()
 
     mesh_d = mesh.clone()
-    predicted_labels_d = np.zeros([mesh_d.NCells(), 1], dtype=np.int32)
+    predicted_labels_d = np.zeros([mesh_d.ncells, 1], dtype=np.int32)
     input_data = get_metadata(cfg, mesh, device)
 
     infer_start_time = time.time()

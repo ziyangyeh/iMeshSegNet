@@ -1,17 +1,17 @@
 seed: 42
 train:
-  epochs: 200
-  learning_rate: 0.0003
+  epochs: 100
+  learning_rate: 0.003
   optimizer: "adam"
   scheduler: "StepLR"
-  step_size: 50
+  step_size: 20
   gamma: 0.1
   weight_decay: 0
   checkpoint_dir: "checkpoints"
   benchmark: True
   deterministic: True
   accelerator: "gpu"
-  devices: [1]
+  devices: [2,3]
   strategy: "DDP"
   precision: 16
   accumulate_grad_batches: 1
@@ -25,13 +25,13 @@ dataloader:
   batch_size: 16
   num_workers: 16
 model:
-  name: "MeshSegNet"
-  num_classes: 17
+  name: "iMeshSegNet"
+  num_classes: 15 #TeethLabels + 1(gum)
   num_channels: 15
   with_dropout: True
   dropout_p: 0.5
 logger:
   name: 'wandb'
   use: True
-  project: "MeshSegNet"
+  project: "iMeshSegNet"
   log_every_n_steps: 5

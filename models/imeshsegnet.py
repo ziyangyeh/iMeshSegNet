@@ -1,7 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 from .meshsegnet import STN3d, STNkd
+
 
 class iMeshSegNet(nn.Module):
     def __init__(self, num_classes=15, num_channels=15, with_dropout=True, dropout_p=0.5):

@@ -1,12 +1,16 @@
-import sys, os
+import os
+import sys
+
 sys.path.append(os.getcwd())
 
 import argparse
+
 import pytorch_lightning as pl
 from omegaconf import OmegaConf
 
-from models import LitModule
 from dataset import LitDataModule
+from models import LitModule
+
 
 def test(cfg_path: str, ckpt_path: str):
     cfg = OmegaConf.load(cfg_path)
@@ -20,7 +24,7 @@ def test(cfg_path: str, ckpt_path: str):
     module = LitModule(cfg)
 
     trainer = pl.Trainer(benchmark=cfg.train.benchmark,
-                        deterministic=cfg.train.deterministic,
+                        deterministic=cfg.train.deterministic if cfg.model.name == "MeshSegNet" else False,
                         accelerator='gpu' if cfg.train.accelerator=='gpu' else 'cpu', 
                         devices=1,
                         max_epochs=cfg.train.epochs,
