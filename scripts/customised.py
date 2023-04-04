@@ -92,6 +92,29 @@ def assemble(mesh_path: str, label_path: str, out_dir: str, offset: int):
     )
 
 
+def format_file(mesh_path: str, out_dir: str):
+    result = centring(vedo.Mesh(mesh_path))
+    # mesh = vedo.Mesh(mesh_path)
+    # label = mesh.celldata["Label"]
+    # result = add_label(centring(vedo.vedo2trimesh(mesh)), rearrange(label))
+    vedo.io.write(
+        result,
+        os.path.join(
+            out_dir, os.path.splitext(os.path.basename(mesh_path))[0] + ".vtp"
+        ),
+    )
+
+    flipped_result = Easy_Mesh(
+        os.path.join(out_dir, os.path.splitext(os.path.basename(mesh_path))[0] + ".vtp")
+    )
+    flipped_result.mesh_reflection(ref_axis="y")
+    flipped_result.to_vtp(
+        os.path.join(
+            out_dir, os.path.splitext(os.path.basename(mesh_path))[0] + "_f.vtp"
+        )
+    )
+
+
 def augment(mesh_path: str, out_dir: str, aug_num: int):
     for i in range(aug_num):
         mesh = vedo.Mesh(mesh_path)
@@ -147,8 +170,6 @@ def gen_metadata(
     # initialize batch of input and label
     X_train = np.zeros([patch_size, X.shape[1]], dtype="float32")
     Y_train = np.zeros([patch_size, Y.shape[1]], dtype="int32")
-    S1 = np.zeros([patch_size, patch_size], dtype="float32")
-    S2 = np.zeros([patch_size, patch_size], dtype="float32")
 
     # calculate number of valid cells (tooth instead of gingiva)
     positive_idx = np.argwhere(labels > 0)[:, 0]  # tooth idx
@@ -176,17 +197,6 @@ def gen_metadata(
     X_train[:] = X[selected_idx, :]
     Y_train[:] = Y[selected_idx, :]
 
-    # TX = torch.as_tensor(X_train[:, 9:12])
-    # TD = torch.cdist(TX, TX)
-    # D = TD.numpy()
-    D = distance_matrix(X_train[:, 9:12], X_train[:, 9:12])
-
-    S1[D < 0.1] = 1.0
-    S1 = S1 / np.dot(np.sum(S1, axis=1, keepdims=True), np.ones((1, patch_size)))
-
-    S2[D < 0.2] = 1.0
-    S2 = S2 / np.dot(np.sum(S2, axis=1, keepdims=True), np.ones((1, patch_size)))
-
     X_train = X_train.transpose(1, 0)
     Y_train = Y_train.transpose(1, 0)
 
@@ -205,12 +215,10 @@ def gen_metadata(
     hdf5[stage]["label"][idx] = Y_train
     hdf5[stage]["KG_6"][idx] = KG_6
     hdf5[stage]["KG_12"][idx] = KG_12
-    hdf5[stage]["A_S"][idx] = S1
-    hdf5[stage]["A_L"][idx] = S2
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="H5 Dataset Script")
+    parser = argparse.ArgumentParser(description="iMeshSegNet Dataset Script")
     parser.add_argument(
         "-in",
         "--input_dir",
@@ -226,9 +234,6 @@ if __name__ == "__main__":
         metavar="",
         help="Output Directory",
         required=True,
-    )
-    parser.add_argument(
-        "-off", "--offset", type=int, metavar="", help="Offset Value", default=0
     )
     parser.add_argument(
         "-aug", "--augment", type=int, metavar="", help="Augment Value", default=20
@@ -250,21 +255,17 @@ if __name__ == "__main__":
         os.mkdir(os.path.join(args.output_dir, "upper"))
         os.mkdir(os.path.join(args.output_dir, "lower"))
 
-    print("Assembling...")
+    print("Formatting...")
     Parallel(n_jobs=cpu_count())(
-        delayed(assemble)(i, j, os.path.join(args.output_dir, "upper"), args.offset)
-        for i, j in tzip(
-            glob.glob(f"./{args.input_dir}/*/上/*.stl"),
-            glob.glob(f"./{args.input_dir}/*/上/*.txt"),
-            desc="upper",
+        delayed(format_file)(file_name, os.path.join(args.output_dir, "upper"))
+        for _, file_name in enumerate(
+            tqdm(glob.glob(f"{args.input_dir}/upper*.vtp"), desc="upper")
         )
     )
     Parallel(n_jobs=cpu_count())(
-        delayed(assemble)(i, j, os.path.join(args.output_dir, "lower"), args.offset)
-        for i, j in tzip(
-            glob.glob(f"./{args.input_dir}/*/下/*.stl"),
-            glob.glob(f"./{args.input_dir}/*/下/*.txt"),
-            desc="lower",
+        delayed(format_file)(file_name, os.path.join(args.output_dir, "lower"))
+        for _, file_name in enumerate(
+            tqdm(glob.glob(f"{args.input_dir}/lower*.vtp"), desc="lower")
         )
     )
 
@@ -370,20 +371,6 @@ if __name__ == "__main__":
             data_group.create_dataset(
                 "KG_12",
                 data=np.zeros((length, 3 * 2, args.patch_size, 12), dtype=np.float32),
-                dtype="float32",
-            )
-            data_group.create_dataset(
-                "A_S",
-                data=np.zeros(
-                    (length, args.patch_size, args.patch_size), dtype=np.float32
-                ),
-                dtype="float32",
-            )
-            data_group.create_dataset(
-                "A_L",
-                data=np.zeros(
-                    (length, args.patch_size, args.patch_size), dtype=np.float32
-                ),
                 dtype="float32",
             )
             for idx, i in enumerate(

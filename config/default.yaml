@@ -11,19 +11,17 @@ train:
   benchmark: True
   deterministic: True
   accelerator: "gpu"
-  devices: [1,2,3]
+  devices: [0]
   strategy: "DDP"
-  precision: 16
+  precision: 32
   accumulate_grad_batches: 1
-  auto_lr_find: False
-  auto_scale_batch_size: False
   fast_dev_run: False
   pretrain_file: None
 dataset:
-  hdf5_path: "meta-data/h5/upper.hdf5"
+  hdf5_path: "h5/upper.hdf5"
 dataloader:
-  batch_size: 16
-  num_workers: 8
+  batch_size: 8
+  num_workers: 2
 model:
   name: "iMeshSegNet"
   num_classes: 15 #TeethLabels + 1(gum)

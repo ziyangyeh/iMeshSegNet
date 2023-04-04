@@ -43,11 +43,14 @@ class LitDataModule(pl.LightningDataModule):
     def test_dataloader(self) -> DataLoader:
         return self._dataloader(self.test_dataset)
 
-    def _dataloader(self, dataset: H5_Mesh_Dataset, train: bool = False, val: bool = False) -> DataLoader:
-        return DataLoader(dataset,
-                        batch_size=self.batch_size,
-                        shuffle=True if train and val else False,
-                        num_workers=self.num_workers,
-                        pin_memory=True,
-                        drop_last=True if train and val else False,
-                        )
+    def _dataloader(
+        self, dataset: H5_Mesh_Dataset, train: bool = False, val: bool = False
+    ) -> DataLoader:
+        return DataLoader(
+            dataset,
+            batch_size=self.batch_size,
+            shuffle=True if train and val else False,
+            num_workers=self.num_workers,
+            pin_memory=True,
+            drop_last=True if train and val else False,
+        )

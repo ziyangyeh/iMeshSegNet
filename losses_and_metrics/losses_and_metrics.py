@@ -6,9 +6,10 @@ from utils import weighting_DSC, weighting_PPV, weighting_SEN
 
 
 class Generalized_Dice_Loss(nn.Module):
-    def __init__(self,
-                smooth = 1.0,
-                ):
+    def __init__(
+        self,
+        smooth=1.0,
+    ):
         super(Generalized_Dice_Loss, self).__init__()
         self.smooth = smooth
 
