@@ -1,33 +1,36 @@
-import os
-import sys
-
-sys.path.append(os.getcwd())
-
 import argparse
+import gc
 
+import pandas as pd
 import pytorch_lightning as pl
+import torch
+import wandb
 from omegaconf import OmegaConf
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
-from pytorch_lightning.strategies import *
+from sklearn.model_selection import KFold
 
 from dataset import LitDataModule
 from models import LitModule
 
+torch.set_float32_matmul_precision("high")
 
-def train(cfg_path: str):
-    cfg = OmegaConf.load(cfg_path)
 
+def train(fold: int, cfg: OmegaConf, dataframe=pd.DataFrame):
     pl.seed_everything(cfg.seed)
 
-    datamodule = LitDataModule(cfg)
+    datamodule = LitDataModule(
+        fold=fold,
+        cfg_ds=cfg.dataset,
+        cfg_dl=cfg.dataloader,
+        dataframe=dataframe,
+        num_classes=cfg.model.num_classes,
+        mode="csv" if cfg.dataset.mode == "csv" else "npy",
+    )
 
     datamodule.setup()
 
-    module = LitModule(cfg)
-
-    if cfg.train.pretrain_file is not None and os.path.exists(cfg.train.pretrain_file):
-        module.load_model(cfg.train.pretrain_file)
+    module = LitModule(cfg.train, cfg.model)
 
     dsc_model_checkpoint = ModelCheckpoint(
         dirpath=cfg.train.checkpoint_dir,
@@ -44,50 +47,23 @@ def train(cfg_path: str):
         verbose="True",
     )
 
-    # strategy = cfg.train.strategy
-    # if cfg.train.strategy == "DDP" and cfg.model.name == "MeshSegNet":
-    #     strategy = DDPStrategy(find_unused_parameters=False)
-    # elif cfg.train.strategy == "DDP" and cfg.model.name == "iMeshSegNet":
-    #     strategy = DDPStrategy(find_unused_parameters=True)
-
     trainer = pl.Trainer(
         callbacks=[dsc_model_checkpoint, loss_model_checkpoint],
         benchmark=cfg.train.benchmark,
-        deterministic=cfg.train.deterministic
-        if cfg.model.name == "MeshSegNet"
-        else False,
+        # deterministic=cfg.train.deterministic,
         accelerator=cfg.train.accelerator,
         devices=cfg.train.devices,
-        strategy=DDPStrategy(find_unused_parameters=False)
-        if cfg.train.strategy == "DDP"
-        else cfg.train.strategy,
+        strategy="ddp" if cfg.train.ddp else "auto",
         max_epochs=cfg.train.epochs,
         precision=cfg.train.precision,
         log_every_n_steps=cfg.logger.log_every_n_steps,
         logger=WandbLogger(
-            project=cfg.logger.project, name=f"{cfg.model.name}-{cfg.train.precision}f"
-        )
-        if cfg.logger.use == True
-        else False,
+            project=cfg.logger.project, name=f"iMeshSegNet-{cfg.train.precision}f"
+        ),
         accumulate_grad_batches=cfg.train.accumulate_grad_batches,
-        fast_dev_run=cfg.train.fast_dev_run,
     )
 
-    trainer.fit(
-        module,
-        datamodule=datamodule,
-        ckpt_path=os.path.join(
-            cfg.train.checkpoint_dir,
-            f"{module.model.__class__.__name__}_{cfg.model.num_classes}_Classes_{cfg.train.precision}_f.ckpt",
-        )
-        if os.path.exists(
-            os.path.join(
-                cfg.train.checkpoint_dir,
-                f"{module.model.__class__.__name__}_{cfg.model.num_classes}_Classes_{cfg.train.precision}_f.ckpt",
-            )
-        )
-        else None,
-    )
+    trainer.fit(module, datamodule=datamodule)
 
 
 if __name__ == "__main__":
@@ -100,7 +76,18 @@ if __name__ == "__main__":
         help="configuration file",
         default="config/default.yaml",
     )
-
     args = parser.parse_args()
 
-    train(args.config_file)
+    cfg = OmegaConf.load(args.config_file)
+    dataframe = pd.read_csv(cfg.dataset.csv_path)
+
+    for fold, (train_idx, valid_idx) in enumerate(
+        KFold(n_splits=cfg.k_fold, random_state=cfg.seed, shuffle=True).split(dataframe)
+    ):
+        dataframe.loc[valid_idx, "fold"] = fold
+
+    for i in range(cfg.k_fold):
+        trainer = train(i, cfg, dataframe)
+        wandb.finish()
+        del trainer
+        gc.collect()

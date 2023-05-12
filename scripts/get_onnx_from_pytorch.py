@@ -13,7 +13,7 @@ import vedo
 from omegaconf import OmegaConf
 
 from models import LitModule
-from scripts.infer import get_metadata
+from infer import get_metadata
 
 torch.set_default_tensor_type("torch.FloatTensor")
 # torch.set_default_tensor_type('torch.cuda.FloatTensor')
@@ -24,7 +24,11 @@ def get_onnx(cfg_path: str, ckpt_path: str, mesh_file: str, filepath: str):
     module = LitModule(cfg)
     device = module.device
     model = module.model
-    model.load_state_dict(torch.load(ckpt_path, map_location=torch.device(cfg.train.accelerator))["model_state_dict"])
+    model.load_state_dict(
+        torch.load(ckpt_path, map_location=torch.device(cfg.train.accelerator))[
+            "model_state_dict"
+        ]
+    )
     model.eval()
 
     mesh = vedo.Mesh(mesh_file)

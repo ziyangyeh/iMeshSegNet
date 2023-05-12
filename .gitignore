@@ -1,16 +1,14 @@
+.DS_Store
 .vscode
 __pycache__
-.DS_Store
 
+data
+npz
 checkpoints
-pretrained
-wandb
 lightning_logs
-
-h5
-meta-data
-vtk-data
-augmentation_vtk_data
+wandb
 
 *.vtp
 debug.py
+test.py
+infer.py

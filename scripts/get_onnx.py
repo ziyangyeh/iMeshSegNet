@@ -13,7 +13,7 @@ import vedo
 from omegaconf import OmegaConf
 
 from models import LitModule
-from scripts.infer import get_metadata
+from infer import get_metadata
 
 torch.set_default_tensor_type("torch.FloatTensor")
 # torch.set_default_tensor_type('torch.cuda.FloatTensor')

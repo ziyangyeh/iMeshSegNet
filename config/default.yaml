@@ -1,35 +1,34 @@
 seed: 42
+k_fold: 5
 train:
-  epochs: 100
-  learning_rate: 0.003
-  optimizer: "adam"
-  scheduler: "StepLR"
+  epochs: 200
+  learning_rate: 1e-3
   step_size: 20
-  gamma: 0.1
-  weight_decay: 0
+  gamma: 0.5
+  weight_decay: 1e-7
   checkpoint_dir: "checkpoints"
   benchmark: True
-  deterministic: True
+  # deterministic: True
   accelerator: "gpu"
-  devices: [0]
-  strategy: "DDP"
-  precision: 32
+  devices: 1
+  ddp: False
+  precision: "16-mixed"
   accumulate_grad_batches: 1
-  fast_dev_run: False
-  pretrain_file: None
 dataset:
-  hdf5_path: "h5/upper.hdf5"
+  rearrange: False
+  patch_size: 7000
+  mode: "npz"                         # npz or csv
+  # csv_path: "data/dataset.csv"
+  csv_path: "npz/npz_dataset.csv"
+  transform: False
 dataloader:
-  batch_size: 8
-  num_workers: 2
+  batch_size: 32
+  num_workers: 4
 model:
-  name: "iMeshSegNet"
-  num_classes: 15 #TeethLabels + 1(gum)
+  num_classes: 15                       # TeethLabels + 1(gum)
   num_channels: 15
   with_dropout: True
-  dropout_p: 0.5
+  dropout: 0.5
 logger:
-  name: 'wandb'
-  use: True
   project: "iMeshSegNet"
-  log_every_n_steps: 5
+  log_every_n_steps: 1
